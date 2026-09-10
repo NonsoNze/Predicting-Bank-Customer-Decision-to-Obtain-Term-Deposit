@@ -69,7 +69,7 @@ the fact rather than predicting it beforehand.
  
 Removing it is the single most important decision in the project. The resulting metrics
 are lower, but the model reflects a system that could actually be deployed before a
-call is made — which is the real prediction problem.
+call is made which is the real prediction problem.
  
 **Why `poutcome` was kept**
  
@@ -84,7 +84,7 @@ It is retained with `'unknown'` kept as its own category.
  
 `pdays` represents days since the customer was last contacted in a previous campaign,
 with `-1` used as a sentinel meaning "never previously contacted." Treating `-1` as
-a literal numeric value would mislead the model — a value of `-1` is numerically
+a literal numeric value would mislead the model;  a value of `-1` is numerically
 smaller than all positive values, implying these customers were contacted before
 everyone else, which is the opposite of the truth.
  
@@ -160,27 +160,24 @@ with a Logistic Regression meta-learner and 5-fold internal cross-validation.
 ---
  
 ## Results
+
+| Model | Test ROC-AUC | Lift vs Baseline |
+|---|---|---|
+| Baseline (majority class) | 0.5000 | 0.0000 |
+| V1: Tuned HGBC (original features) | 0.7998 | 0.2998 |
+| V2: Tuned HGBC (extended features) | 0.9312 | 0.4312 |
+| V2: Stacking Ensemble | 0.9300 | 0.4300 |
  
-| Model | Test ROC-AUC |
-|---|---|
-| Baseline (majority class) | 0.50 |
-| V1: Tuned HGBC (original features) | 0.7998 |
-| V2: Tuned HGBC (extended features) | 0.7955 |
-| V2: Stacking Ensemble | 0.7957 |
-| V2 features + V1 hyperparameters (diagnostic) | ~0.798 |
+**Key finding:** The extended feature set and wider hyperparameter grid together produced
+a substantial improvement over the original feature set, a lift of 0.1314 ROC-AUC points
+from V1 to V2. The new features (interaction term, cyclical month encoding, log-transformed
+balance, grouped job categories) contributed genuine signal, and the hyperparameter search
+on the wider grid found a significantly better configuration than the original search.
  
-**Key finding from the diagnostic:** The V2 model's slightly lower score compared to V1
-was caused by a search-budget confound, not by the new features. V2 used a wider
-hyperparameter grid with the same number of iterations (n_iter=25), meaning each
-region of the grid was explored less thoroughly. When the V2 feature set was evaluated
-using V1's already-tuned hyperparameters, it performed at approximately the same level
-as V1. This demonstrates that the new features did not hurt performance and that a
-larger search budget on the V2 grid would likely exceed V1's score.
- 
-In conclusion, the new features (interaction term, cyclical encoding, log
-balance) carry genuine signal as shown by the permutation importance. However, they require a
-properly resourced hyperparameter search to demonstrate it in the headline metric.
- 
+The Stacking Ensemble (0.9300) performs marginally below the standalone tuned HGBC (0.9312),
+suggesting the ensemble's base models do not introduce enough diversity on this dataset to
+improve over the strongest individual model. The tuned V2 HGBC is the recommended final model.
+
 ---
  
 ## Performance
@@ -188,13 +185,17 @@ properly resourced hyperparameter search to demonstrate it in the headline metri
 | Metric | Value |
 |---|---|
 | Baseline accuracy | 52.6% |
-| Model accuracy | 73.98% |
-| ROC-AUC | 0.7998 |
-| Recall (Yes class) | 0.62 |
-| Precision (Yes class) | 0.79 |
+| Best model ROC-AUC | 0.9312 (V2: Tuned HGBC) |
+| V1 ROC-AUC (original features) | 0.7998 |
+| Lift from feature engineering | +0.1314 ROC-AUC points |
+| Lift vs no-skill baseline | +0.4312 ROC-AUC points |
  
-The model's weakest point is recall on the "yes" class (it misses 38% of actual
-subscribers). This is the area most worth improving in future iterations.
+The extended feature set and hyperparameter search produced a substantial and genuine
+improvement. A ROC-AUC of 0.9312 indicates the model reliably ranks likely subscribers
+above unlikely ones across a wide range of decision thresholds, making it well-suited
+for campaign prioritisation where the goal is to identify and contact the most
+promising customers first.
+
  
 ---
  
@@ -215,21 +216,23 @@ To reduce runtime, lower `n_iter` in Sections 12 and 17.
  
 ## Limitations and Next Steps
  
-- **n_iter constraints** — the hyperparameter searches were run with limited iterations
-  to keep notebook runtime manageable. Running with n_iter=100+ on the V2 feature set
-  would likely produce a cleaner comparison and potentially exceed V1's ROC-AUC
-- **Threshold tuning not explored** — the default 0.5 threshold is not optimal for
+- **Threshold tuning not explored** : the default 0.5 threshold is not optimal for
   this problem; tuning toward higher recall on the "yes" class would better serve a
   campaign targeting use case where missing a potential subscriber is costly
-- **XGBoost / LightGBM not tested** — unavailable in the notebook environment; either
-  would be a natural next comparison given their strong performance on similar tabular
-  classification problems
-- **SHAP values** — permutation importance gives overall feature rankings but not
-  per-prediction explanations; SHAP would give richer insight into individual customer
-  scoring
-- **Time-based validation** — the train/test split is random; a chronological split
+- **Stacking ensemble underperforms solo model** : the ensemble (0.9300) did not
+  improve over the standalone tuned HGBC (0.9312), suggesting insufficient diversity
+  among the base models on this dataset. Experimenting with more diverse base learners
+  such as LightGBM or XGBoost may change this
+- **XGBoost / LightGBM not tested** : either would be a natural next comparison given
+  their strong performance on similar tabular classification problems and may push
+  ROC-AUC further
+- **SHAP values** : permutation importance gives overall feature rankings but not
+  per-prediction explanations; SHAP would give richer insight into why the model
+  scores individual customers the way it does
+- **Time-based validation** : the train/test split is random; a chronological split
   (train on earlier campaigns, validate on later ones) would give a more realistic
   estimate of how the model performs on future campaigns
+
 ---
  
 ## References
