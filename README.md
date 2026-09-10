@@ -61,7 +61,7 @@ are not required, though the baseline and evaluation methodology still account f
 **Why `duration` was removed**
  
 `duration` is the length in seconds of the last phone call with the customer. It is
-one of the strongest predictors in the raw dataset — but it is only known after the
+one of the strongest predictors in the raw dataset but it is only known after the
 call ends, which is after the outcome (subscription or not) is already determined.
 A longer call almost always means the customer said yes, because there is more to
 discuss. Including this variable would mean the model is reading the answer after
@@ -95,7 +95,7 @@ only where it actually applies.
 **Why `'unknown'` categories were retained**
  
 Dropping rows where job or education is `'unknown'` discards data and assumes those
-customers are randomly distributed — which may not be true. Customers with unknown
+customers are randomly distributed. Customers with unknown
 job or education could systematically differ in their subscription behaviour.
 `'unknown'` is kept as a category in its own right and one-hot encoded alongside
 the other values, letting the model learn from it.
@@ -105,7 +105,7 @@ the other values, letting the model learn from it.
 Scaling binary 0/1 dummy columns (from one-hot encoding) is unnecessary and makes
 coefficients harder to interpret. StandardScaler is applied only to genuinely
 continuous features: age, balance, day, campaign, pdays_clean, previous, and the
-engineered features. Tree-based models do not need scaling at all; it is applied
+engineered features. Since tree-based models do not need scaling at all, it is applied
 here only for the benefit of the linear models in the comparison.
  
 ---
@@ -118,7 +118,7 @@ here only for the benefit of the linear models in the comparison.
 | `pdays_clean` | pdays with -1 replaced by 0 | Makes the numeric value interpretable |
 | `poutcome_success_flag` | Binary: poutcome == 'success' | Isolates the strongest poutcome category |
 | `success_x_previous` | poutcome_success_flag x previous | Interaction: prior success combined with high contact count signals an engaged, responsive customer |
-| `month_sin` / `month_cos` | Cyclical encoding of month | Preserves seasonal adjacency — December and January are treated as close rather than maximally distant |
+| `month_sin` / `month_cos` | Cyclical encoding of month | Preserves seasonal adjacency; December and January are treated as close rather than maximally distant |
 | `balance_log` | Signed log transform of balance | Compresses the heavy right skew and outliers in account balance |
 | `job_grouped` | Rare job categories merged to 'other' | Reduces sparse, noisy dummy columns from low-frequency categories |
  
@@ -177,8 +177,8 @@ using V1's already-tuned hyperparameters, it performed at approximately the same
 as V1. This demonstrates that the new features did not hurt performance and that a
 larger search budget on the V2 grid would likely exceed V1's score.
  
-The honest conclusion: the new features (interaction term, cyclical encoding, log
-balance) carry genuine signal — confirmed by permutation importance — but require a
+In conclusion, the new features (interaction term, cyclical encoding, log
+balance) carry genuine signal as shown by the permutation importance. However, they require a
 properly resourced hyperparameter search to demonstrate it in the headline metric.
  
 ---
@@ -193,8 +193,8 @@ properly resourced hyperparameter search to demonstrate it in the headline metri
 | Recall (Yes class) | 0.62 |
 | Precision (Yes class) | 0.79 |
  
-The model's weakest point is recall on the "yes" class — it misses 38% of actual
-subscribers. This is the area most worth improving in future iterations.
+The model's weakest point is recall on the "yes" class (it misses 38% of actual
+subscribers). This is the area most worth improving in future iterations.
  
 ---
  
